@@ -1,13 +1,14 @@
-use juniper::{graphql_object, meta::Field, FieldError, FieldResult};
+use juniper::{graphql_object, FieldError, FieldResult};
 
-use crate::schema::{Database, User};
+use crate::schema::{DatabaseContext, User};
 
 pub struct QueryRoot;
 
-#[graphql_object(context = Database)]
+#[graphql_object(context = DatabaseContext)]
 impl QueryRoot {
-    fn get_all_users(context: &Database) -> FieldResult<Vec<User>> {
-        let users = context.get_all_users();
+    fn get_all_users(context: &DatabaseContext) -> FieldResult<Vec<User>> {
+        let read = context.0.read().expect("Can not access database");
+        let users = read.get_all_users();
         let mut result = Vec::with_capacity(users.len());
         for user in users {
             result.push(User {
@@ -18,8 +19,10 @@ impl QueryRoot {
         Ok(result)
     }
 
-    fn get_user_by_id(context: &Database, id: i32) -> FieldResult<User> {
-        let user = context.get_user_by_id(id);
+    fn get_user_by_id(context: &DatabaseContext, id: i32) -> FieldResult<User> {
+        let read = context.0.read().expect("Can not access database");
+
+        let user = read.get_user_by_id(id);
         match user {
             Some(user) => Ok(User {
                 id: user.id,
